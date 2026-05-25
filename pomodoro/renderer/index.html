@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>番茄钟</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="phase-label" id="phaseLabel">专注</div>
+
+    <div class="timer-ring">
+      <svg viewBox="0 0 200 200">
+        <circle class="ring-track" cx="100" cy="100" r="90"/>
+        <circle class="ring-progress work" cx="100" cy="100" r="90" id="progressRing"/>
+      </svg>
+      <div class="timer-text" id="timerText">25:00</div>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-primary" id="btnStart">开始</button>
+      <button class="btn btn-secondary" id="btnReset">重置</button>
+      <button class="btn btn-secondary" id="btnSkip">跳过</button>
+    </div>
+
+    <div class="session-count" id="sessionCount">
+      <span class="tomato-icon">🍅</span> × <span id="countNumber">0</span>
+    </div>
+
+    <div class="footer">
+      <label class="toggle-label">
+        <input type="checkbox" id="toggleOnTop">
+        <span>窗口置顶</span>
+      </label>
+    </div>
+  </div>
+
+  <script src="timer.js"></script>
+</body>
+</html>
