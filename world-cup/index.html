@@ -1066,6 +1066,7 @@ document.addEventListener('click', function(e) {
     renderBracket();
     renderSchedule();
     updateScheduleData();
+    saveScores(); // 持久化到 localStorage
   }
 });
 
@@ -1082,6 +1083,58 @@ function updateScheduleData() {
       if (schedMatch) schedMatch.score = m.score;
     });
   });
+}
+
+// ===== localStorage 持久化 =====
+const STORAGE_KEY = 'wc2026_scores';
+
+function saveScores() {
+  const data = { groups: {}, knockout: {} };
+  // 小组赛比分
+  Object.keys(groupMatches).forEach(g => {
+    data.groups[g] = groupMatches[g].map(m => m.score);
+  });
+  // 淘汰赛比分
+  ['r32','r16','qf','sf','third','final'].forEach(r => {
+    data.knockout[r] = koRounds[r].matches.map(m => m.score);
+  });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function loadScores() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    let restored = false;
+    // 恢复小组赛
+    if (data.groups) {
+      Object.keys(data.groups).forEach(g => {
+        if (groupMatches[g] && Array.isArray(data.groups[g])) {
+          data.groups[g].forEach((score, i) => {
+            if (score !== null && score !== undefined && groupMatches[g][i]) {
+              groupMatches[g][i].score = score;
+              restored = true;
+            }
+          });
+        }
+      });
+    }
+    // 恢复淘汰赛
+    if (data.knockout) {
+      Object.keys(data.knockout).forEach(r => {
+        if (koRounds[r] && Array.isArray(data.knockout[r])) {
+          data.knockout[r].forEach((score, i) => {
+            if (score !== null && score !== undefined && koRounds[r].matches[i]) {
+              koRounds[r].matches[i].score = score;
+              restored = true;
+            }
+          });
+        }
+      });
+    }
+    return restored;
+  } catch(e) { return false; }
 }
 
 // 演示数据
@@ -1129,7 +1182,10 @@ function loadDemoData() {
 
 // 清空所有比分
 function clearAllScores() {
-  if (!confirm('确定要清空所有比赛比分吗？此操作不可恢复。')) return;
+  if (!confirm('确定要清空所有比赛比分吗？此操作不可恢复，已保存的比分也将被清除。')) return;
+
+  // 清除 localStorage
+  localStorage.removeItem(STORAGE_KEY);
 
   // 清空小组赛比分
   Object.keys(groups).forEach(g => {
@@ -1186,6 +1242,26 @@ function updateCountdown() {
 setInterval(updateCountdown, 60000);
 
 // Init
+// 优先从 localStorage 恢复已保存的比分
+const hasSaved = loadScores();
+if (hasSaved) {
+  // 重算所有小组积分
+  Object.keys(groups).forEach(g => recalcGroup(g));
+  // 同步淘汰赛比分到全量赛程
+  ['r32','r16','qf','sf','third','final'].forEach(r => {
+    koRounds[r].matches.forEach(m => {
+      const sm = fullSchedule.find(s => s.phase === koRounds[r].name && s.home === m.team1 && s.away === m.team2);
+      if (sm) sm.score = m.score;
+    });
+  });
+  Object.keys(groups).forEach(g => {
+    const ts = groups[g].teams;
+    groupMatches[g].forEach((m, mi) => {
+      const sm = fullSchedule.find(s => s.phase === `小组赛 ${g}组` && s.home.includes(ts[m.home].name) && s.away.includes(ts[m.away].name));
+      if (sm) sm.score = m.score;
+    });
+  });
+}
 renderGroups();
 renderBracket();
 renderSchedule();
